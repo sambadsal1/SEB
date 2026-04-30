@@ -105,9 +105,9 @@
     </div>
 
     <script>
-        // Password diset di sini
         const EXIT_PASSWORD = "sambadsal";
         let examActive = false;
+        let isLocked = false; // FLAG untuk mencegah looping penguncian
         let wakeLock = null;
 
         // --- SISTEM LAYAR SELALU AKTIF (WAKE LOCK) ---
@@ -116,9 +116,6 @@
                 if ('wakeLock' in navigator) {
                     wakeLock = await navigator.wakeLock.request('screen');
                     document.getElementById('wake-status').innerText = "✓ Layar Tetap Aktif";
-                    wakeLock.addEventListener('release', () => {
-                        console.log('Wake Lock dilepas');
-                    });
                 }
             } catch (err) {
                 document.getElementById('wake-status').innerText = "⚠ Layar Auto-Sleep Aktif";
@@ -127,24 +124,34 @@
 
         // --- SISTEM DETEKSI PELANGGARAN ---
         function triggerLock() {
-            if (examActive) {
+            // Hanya kunci jika ujian aktif dan status layar sedang TIDAK terkunci
+            if (examActive && !isLocked) {
+                isLocked = true; // Set flag menjadi terkunci
                 document.getElementById('cheat-overlay').style.display = 'flex';
                 document.getElementById('form-frame').style.visibility = 'hidden';
             }
         }
 
-        // Fungsi Buka Kunci (Guru)
+        // --- FUNGSI GURU BUKA KUNCI ---
         function unlockExam() {
-            // Mengambil input dan menghapus spasi ekstra di awal/akhir input
             const pwInput = document.getElementById('cheatPassword').value.trim();
             
             if (pwInput === EXIT_PASSWORD) {
+                // Buka tampilan overlay-nya dulu
                 document.getElementById('cheat-overlay').style.display = 'none';
                 document.getElementById('form-frame').style.visibility = 'visible';
                 document.getElementById('cheatPassword').value = '';
-                requestWakeLock(); // Minta lock lagi setelah dibuka
+                
+                // JEDA 1 DETIK (COOLDOWN)
+                // Memberikan waktu agar animasi keyboard HP menutup sempurna tanpa memicu triggerLock()
+                setTimeout(() => {
+                    isLocked = false; // Kembalikan status menjadi tidak terkunci
+                    window.focus(); // Paksa fokus kembali ke browser
+                    requestWakeLock(); // Aktifkan anti-sleep lagi
+                }, 1000);
+
             } else { 
-                alert("Password Guru Salah! Pastikan huruf kecil semua tanpa spasi."); 
+                alert("Password Guru Salah! Pastikan huruf kecil semua."); 
             }
         }
 
@@ -158,24 +165,22 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
             
-            // Aktifkan Wake Lock
             requestWakeLock();
 
-            // Re-aktifkan wake lock jika tab kembali fokus
+            // Event Listeners Anti-Cheat (Hanya berjalan jika isLocked = false)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState === 'visible') {
-                    requestWakeLock();
+                    if (!isLocked) requestWakeLock();
                 } else {
-                    triggerLock(); // Pelanggaran jika tab disembunyikan
+                    triggerLock();
                 }
             });
 
-            // Deteksi Kehilangan Fokus (Aplikasi Mengambang / Notifikasi)
             window.addEventListener('blur', triggerLock);
             
-            // Deteksi Perubahan Ukuran (Siswa mencoba split screen)
             window.addEventListener('resize', () => {
-                if (examActive) triggerLock();
+                // Deteksi split screen (dikecualikan saat sedang mengetik password / terkunci)
+                if (!isLocked) triggerLock();
             });
         }
 
@@ -184,7 +189,6 @@
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
             
-            // Auto convert viewform to embedded mode for full screen
             if(url.includes('/viewform')) {
                 url = url.split('?')[0] + '?embedded=true';
             }
@@ -200,20 +204,32 @@
             alert("Link berhasil disalin!");
         }
 
-        function requestExit() { document.getElementById('exit-overlay').style.display = 'flex'; }
+        function requestExit() { 
+            // Menonaktifkan sementara pendeteksi agar mengetik password keluar tidak terkunci
+            isLocked = true; 
+            document.getElementById('exit-overlay').style.display = 'flex'; 
+        }
         
-        // Fungsi Keluar / Selesai (Siswa)
         function confirmExit() {
-            // Mengambil input dan menghapus spasi ekstra di awal/akhir input
             const exitInput = document.getElementById('exitPassword').value.trim();
 
             if (exitInput === EXIT_PASSWORD) {
                 examActive = false;
-                window.location.href = window.location.href.split('?')[0]; // Kembali ke home
+                window.location.href = window.location.href.split('?')[0]; 
             } else { 
-                alert("Password Salah! Pastikan huruf kecil semua tanpa spasi."); 
+                alert("Password Salah!"); 
             }
         }
+
+        // Menambahkan fungsi tombol Batal pada menu exit agar deteksi aktif kembali
+        document.querySelector('#exit-overlay button:last-child').onclick = function() {
+            document.getElementById('exit-overlay').style.display = 'none';
+            document.getElementById('exitPassword').value = '';
+            setTimeout(() => {
+                isLocked = false;
+                window.focus();
+            }, 500);
+        };
     </script>
 </body>
 </html>
