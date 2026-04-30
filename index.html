@@ -6,271 +6,209 @@
     <title>Portal Asesmen - SDN Sukabumi 2 Probolinggo</title>
     <style>
         :root {
-            /* Tema Biru SDN Sukabumi 2 */
+            /* Tema Biru sesuai logo SDN Sukabumi 2 */
             --primary-blue: #00A2E8; 
             --dark-blue: #005f8a;
-            --light-blue: #e3f2fd;
             --white: #ffffff;
             --danger: #dc3545;
-            --success: #28a745;
         }
-
         body, html {
-            margin: 0; padding: 0; 
-            font-family: 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
-            background-color: #f4f7f9; height: 100%; overflow-x: hidden;
+            margin: 0; padding: 0; font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f0f8ff; height: 100%;
         }
-
-        /* HEADER / LOGO REPLACEMENT (SVG) */
-        .school-brand {
-            display: flex; align-items: center; justify-content: center; gap: 10px; margin-bottom: 20px;
-        }
-        .logo-placeholder {
-            width: 60px; height: 60px; background: var(--primary-blue);
-            border-radius: 50%; display: flex; align-items: center; justify-content: center;
-            color: white; font-weight: bold; font-size: 24px; box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-        }
-
-        /* GENERATOR MODE (TAMPILAN GURU) */
+        /* KELAS GENERATOR (TAMPILAN GURU) */
         #generator-mode {
-            max-width: 550px; margin: 60px auto; background: var(--white);
-            padding: 40px; border-radius: 15px; box-shadow: 0 10px 25px rgba(0,0,0,0.1);
-            text-align: center; border-top: 8px solid var(--primary-blue);
+            max-width: 600px; margin: 50px auto; background: var(--white);
+            padding: 30px; border-radius: 10px; box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+            text-align: center;
         }
-        h1 { color: var(--dark-blue); font-size: 22px; margin-bottom: 5px; }
-        h2 { color: #555; font-size: 16px; font-weight: normal; margin-top: 0; margin-bottom: 25px; }
-        
-        .input-group { text-align: left; margin-bottom: 20px; }
-        label { display: block; margin-bottom: 8px; font-weight: 600; color: var(--dark-blue); }
-        
-        input[type="url"], input[type="text"], input[type="password"] {
-            width: 100%; padding: 12px 15px; border: 2px solid #ddd;
-            border-radius: 8px; box-sizing: border-box; font-size: 15px; transition: 0.3s;
+        .logo-img { max-width: 120px; margin-bottom: 15px; }
+        h1, h2, h3 { color: var(--dark-blue); }
+        input[type="text"], input[type="url"] {
+            width: 100%; padding: 12px; margin: 10px 0; border: 2px solid var(--primary-blue);
+            border-radius: 5px; box-sizing: border-box; font-size: 16px;
         }
-        input:focus { border-color: var(--primary-blue); outline: none; box-shadow: 0 0 8px rgba(0,162,232,0.2); }
-
         button {
-            background-color: var(--primary-blue); color: white; border: none;
-            padding: 14px 25px; font-size: 16px; border-radius: 8px; cursor: pointer;
-            font-weight: bold; width: 100%; transition: 0.3s;
+            background-color: var(--primary-blue); color: var(--white); border: none;
+            padding: 12px 20px; font-size: 16px; border-radius: 5px; cursor: pointer;
+            font-weight: bold; width: 100%; margin-top: 10px; transition: 0.3s;
         }
-        button:hover { background-color: var(--dark-blue); transform: translateY(-2px); }
-
+        button:hover { background-color: var(--dark-blue); }
         .result-box {
-            margin-top: 30px; padding: 20px; background: var(--light-blue);
-            border-radius: 10px; display: none; border: 1px dashed var(--primary-blue);
+            margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 5px; display: none;
         }
 
-        /* EXAM MODE (TAMPILAN SISWA) */
+        /* KELAS UJIAN (TAMPILAN SISWA) */
         #exam-mode {
-            display: none; flex-direction: column; height: 100vh; width: 100vw; background: white;
+            display: none; flex-direction: column; height: 100vh; width: 100vw; background: var(--white);
         }
         .exam-header {
-            background-color: var(--primary-blue); color: white; padding: 10px 20px;
-            display: flex; justify-content: space-between; align-items: center;
+            background-color: var(--primary-blue); color: var(--white); padding: 10px 20px;
+            display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.2);
         }
-        .exam-header-info { display: flex; align-items: center; gap: 12px; }
-        .mini-logo {
-            width: 35px; height: 35px; background: white; border-radius: 50%;
-            display: flex; align-items: center; justify-content: center; color: var(--primary-blue);
-            font-weight: bold; font-size: 14px;
-        }
-        .btn-exit { background: var(--danger); width: auto; padding: 8px 15px; font-size: 14px; }
-        
+        .exam-header-left { display: flex; align-items: center; gap: 15px; }
+        .exam-header-left img { height: 50px; background: white; border-radius: 50%; padding: 2px; }
+        .exam-header h2 { margin: 0; color: white; font-size: 18px; }
+        .exam-header p { margin: 0; font-size: 12px; }
+        .btn-exit { background-color: var(--danger); width: auto; padding: 8px 15px; }
+        .btn-exit:hover { background-color: #b02a37; }
         iframe { flex-grow: 1; border: none; width: 100%; }
 
-        /* OVERLAYS */
+        /* MODAL PELANGGARAN & EXIT */
         .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
-            display: none; justify-content: center; align-items: center; z-index: 10000;
-            color: white; text-align: center; padding: 20px; box-sizing: border-box;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.9);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
+            flex-direction: column; color: white; text-align: center; padding: 20px; box-sizing: border-box;
         }
-        .card {
-            background: white; color: #333; padding: 35px; border-radius: 15px;
-            max-width: 400px; width: 90%; box-shadow: 0 20px 40px rgba(0,0,0,0.4);
-        }
-        .card h2 { color: var(--danger); margin-bottom: 15px; }
-        .card p { line-height: 1.6; margin-bottom: 20px; }
-        .card input { margin-bottom: 15px; text-align: center; letter-spacing: 2px; }
-
-        /* Support for Mobile */
-        @media (max-width: 600px) {
-            #generator-mode { margin: 20px; padding: 25px; }
-            h1 { font-size: 18px; }
-        }
+        .overlay-box { background: white; color: black; padding: 30px; border-radius: 10px; max-width: 400px; width: 100%; }
+        .overlay h2 { color: var(--danger); }
+        .overlay input { border: 1px solid #ccc; }
     </style>
 </head>
 <body>
 
     <div id="generator-mode">
-        <div class="school-brand">
-            <div class="logo-placeholder">S2</div>
-            <div>
-                <h1>Portal Asesmen Mandiri</h1>
-                <h2>SDN Sukabumi 2 Kota Probolinggo</h2>
-            </div>
-        </div>
+        <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/120?text=Logo+Sekolah'">
+        <h2>Generator Ujian Anti-Contek</h2>
+        <h3>SDN Sukabumi 2 Probolinggo</h3>
+        <p>Masukkan link Google Form Anda di bawah ini untuk membuat link ujian terkunci.</p>
         
-        <div class="input-group">
-            <label>Link Google Form Ujian</label>
-            <input type="url" id="gformUrl" placeholder="https://docs.google.com/forms/d/..." required>
-        </div>
-        
-        <button onclick="generateLink()">Buat Link Anti-Contek</button>
+        <input type="url" id="gformUrl" placeholder="Paste Link Google Form di sini..." required>
+        <button onclick="generateLink()">Buat Link Ujian</button>
 
         <div id="resultArea" class="result-box">
-            <p style="margin-top:0; font-size: 14px;"><strong>Link Siap Dibagikan ke Siswa:</strong></p>
-            <input type="text" id="generatedLink" readonly style="margin-bottom: 10px; background: #fff;">
-            <button onclick="copyLink()" style="background-color: var(--success);">Salin Link Ujian</button>
+            <p><strong>Bagikan link ini kepada siswa:</strong></p>
+            <input type="text" id="generatedLink" readonly>
+            <button onclick="copyLink()" style="background-color: #28a745;">Copy Link</button>
         </div>
-        
-        <p style="font-size: 11px; color: #888; margin-top: 25px;">
-            Fitur: Deteksi Pindah Tab, Kunci Layar Otomatis, & Proteksi Keluar.
-        </p>
     </div>
 
     <div id="exam-mode">
         <div class="exam-header">
-            <div class="exam-header-info">
-                <div class="mini-logo">S2</div>
+            <div class="exam-header-left">
+                <img src="logo.png" alt="Logo" onerror="this.src='https://via.placeholder.com/50?text=Logo'">
                 <div>
-                    <div style="font-weight: bold; font-size: 14px;">Asesmen Online</div>
-                    <div style="font-size: 11px; opacity: 0.9;">SDN Sukabumi 2 Probolinggo</div>
+                    <h2>Asesmen Online Terpadu</h2>
+                    <p>SDN Sukabumi 2 Kota Probolinggo</p>
                 </div>
             </div>
-            <button class="btn-exit" onclick="requestExit()">Selesai / Keluar</button>
+            <button class="btn-exit" onclick="requestExit()">Keluar / Selesai</button>
         </div>
         <iframe id="form-frame" src=""></iframe>
     </div>
 
     <div id="cheat-overlay" class="overlay">
-        <div class="card">
-            <svg width="60" height="60" viewBox="0 0 24 24" fill="none" stroke="#dc3545" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><rect x="3" y="11" width="18" height="11" rx="2" ry="2"></rect><path d="M7 11V7a5 5 0 0 1 10 0v4"></path></svg>
-            <h2>AKSES TERKUNCI</h2>
-            <p>Sistem mendeteksi Anda mencoba membuka aplikasi lain atau meninggalkan halaman ujian.</p>
-            <p><strong>Silakan hubungi Guru/Pengawas untuk membuka kunci ini.</strong></p>
+        <div class="overlay-box">
+            <h2>PELANGGARAN TERDETEKSI!</h2>
+            <p>Anda telah mencoba keluar dari halaman ujian atau membuka aplikasi lain. Akses ujian Anda telah <strong>DIBLOKIR</strong>.</p>
+            <p>Hubungi pengawas atau guru Anda untuk membuka kembali ujian.</p>
             <input type="password" id="cheatPassword" placeholder="Password Guru">
-            <button onclick="unlockExam()">Buka Kunci</button>
+            <button onclick="unlockExam()">Buka Kunci (Guru)</button>
         </div>
     </div>
 
     <div id="exit-overlay" class="overlay">
-        <div class="card">
-            <h2 style="color: var(--primary-blue);">Konfirmasi Keluar</h2>
-            <p>Pastikan Anda sudah menekan tombol <strong>KIRIM (SUBMIT)</strong> di dalam formulir sebelum keluar agar jawaban tersimpan.</p>
-            <p>Masukkan password untuk menutup aplikasi:</p>
-            <input type="password" id="exitPassword" placeholder="Password">
-            <button onclick="confirmExit()">Ya, Keluar Sekarang</button>
-            <button onclick="closeOverlay('exit-overlay')" style="background: #6c757d; margin-top: 10px;">Batal</button>
+        <div class="overlay-box">
+            <h2 style="color: var(--dark-blue);">Selesai Ujian?</h2>
+            <p>Pastikan Anda telah menekan tombol "Kirim/Submit" pada Google Form sebelum keluar dari aplikasi ini.</p>
+            <p>Masukkan password untuk keluar aplikasi:</p>
+            <input type="password" id="exitPassword" placeholder="Masukkan Password">
+            <button onclick="confirmExit()">Keluar Aplikasi</button>
+            <button onclick="cancelExit()" style="background-color: #6c757d;">Batal</button>
         </div>
     </div>
 
     <script>
-        // KONFIGURASI UTAMA
-        const MASTER_PASSWORD = "sambadsal"; 
-        let isExamActive = false;
+        // Konfigurasi
+        const EXIT_PASSWORD = "sambadsal"; // Password yang Anda minta
+        let examActive = false;
 
-        // Cek Parameter URL
-        const params = new URLSearchParams(window.location.search);
-        const targetForm = params.get('exam');
+        // Cek apakah ada parameter URL (Apakah ini sedang dibuka oleh siswa?)
+        const urlParams = new URLSearchParams(window.location.search);
+        const examUrl = urlParams.get('exam');
 
-        if (targetForm) {
-            // Aktifkan Mode Ujian jika ada link di parameter
+        if (examUrl) {
+            // SISWA MODE
             document.getElementById('generator-mode').style.display = 'none';
             document.getElementById('exam-mode').style.display = 'flex';
-            document.getElementById('form-frame').src = decodeURIComponent(targetForm);
-            isExamActive = true;
+            document.getElementById('form-frame').src = decodeURIComponent(examUrl);
+            examActive = true;
 
-            // Jalankan sistem deteksi
-            initAntiCheat();
+            // FITUR ANTI CONTEK: Deteksi pindah tab atau aplikasi
+            document.addEventListener('visibilitychange', handleCheatDetected);
+            window.addEventListener('blur', handleCheatDetected);
         }
 
-        // --- FUNGSI GURU ---
+        // --- FUNGSI GURU (GENERATOR) ---
         function generateLink() {
-            let inputUrl = document.getElementById('gformUrl').value;
-            if (!inputUrl || !inputUrl.includes('google.com/forms')) {
-                alert("Masukkan Link Google Form yang valid!");
-                return;
+            let url = document.getElementById('gformUrl').value;
+            if (!url) {
+                alert("Harap masukkan link Google Form!"); return;
+            }
+            
+            // Perbaikan URL agar G-Form tampil penuh tanpa baris menu
+            if(url.includes('/viewform')) {
+                url = url.split('?')[0] + '?embedded=true';
             }
 
-            // Ubah link agar mode 'embedded' (lebih bersih)
-            if (inputUrl.includes('/viewform')) {
-                inputUrl = inputUrl.split('?')[0] + '?embedded=true';
-            }
-
-            const encoded = encodeURIComponent(inputUrl);
-            const baseUrl = window.location.href.split('?')[0];
-            const finalLink = `${baseUrl}?exam=${encoded}`;
-
+            const encodedUrl = encodeURIComponent(url);
+            const currentUrl = window.location.href.split('?')[0]; // Dapatkan URL saat ini
+            const finalLink = `${currentUrl}?exam=${encodedUrl}`;
+            
             document.getElementById('generatedLink').value = finalLink;
             document.getElementById('resultArea').style.display = 'block';
         }
 
         function copyLink() {
-            const copyText = document.getElementById('generatedLink');
-            copyText.select();
-            copyText.setSelectionRange(0, 99999);
+            const linkInput = document.getElementById('generatedLink');
+            linkInput.select();
             document.execCommand("copy");
-            alert("Link berhasil disalin! Bagikan ke siswa via WhatsApp/Grup.");
+            alert("Link berhasil di-copy! Silakan bagikan ke siswa.");
         }
 
-        // --- FUNGSI ANTI-CHEAT ---
-        function initAntiCheat() {
-            // Deteksi pindah tab
-            document.addEventListener('visibilitychange', () => {
-                if (document.hidden && isExamActive) {
-                    lockScreen();
-                }
-            });
-
-            // Deteksi buka jendela lain / minimize (khusus Laptop/PC)
-            window.addEventListener('blur', () => {
-                if (isExamActive) {
-                    lockScreen();
-                }
-            });
-        }
-
-        function lockScreen() {
-            document.getElementById('cheat-overlay').style.display = 'flex';
-            document.getElementById('form-frame').style.opacity = '0';
-        }
-
-        function unlockExam() {
-            const val = document.getElementById('cheatPassword').value;
-            if (val === MASTER_PASSWORD) {
-                document.getElementById('cheat-overlay').style.display = 'none';
-                document.getElementById('form-frame').style.opacity = '1';
-                document.getElementById('cheatPassword').value = '';
-                // Focus kembali ke window
-                window.focus();
-            } else {
-                alert("Password Salah!");
+        // --- FUNGSI SISWA (ANTI-CHEAT) ---
+        function handleCheatDetected() {
+            // Jika dokumen tidak terlihat (minimize) atau window kehilangan fokus
+            if (examActive && (document.hidden || !document.hasFocus())) {
+                document.getElementById('cheat-overlay').style.display = 'flex';
+                document.getElementById('form-frame').style.visibility = 'hidden';
             }
         }
 
-        // --- FUNGSI KELUAR ---
+        function unlockExam() {
+            const pw = document.getElementById('cheatPassword').value;
+            if (pw === EXIT_PASSWORD) {
+                document.getElementById('cheat-overlay').style.display = 'none';
+                document.getElementById('form-frame').style.visibility = 'visible';
+                document.getElementById('cheatPassword').value = '';
+                // Memberikan delay sedikit agar tidak langsung terdeteksi nge-blur saat klik tombol
+                setTimeout(() => { window.focus(); }, 100);
+            } else {
+                alert("Password salah!");
+            }
+        }
+
+        // --- FUNGSI KELUAR APLIKASI ---
         function requestExit() {
             document.getElementById('exit-overlay').style.display = 'flex';
         }
 
-        function closeOverlay(id) {
-            document.getElementById(id).style.display = 'none';
+        function cancelExit() {
+            document.getElementById('exit-overlay').style.display = 'none';
+            document.getElementById('exitPassword').value = '';
         }
 
         function confirmExit() {
-            const val = document.getElementById('exitPassword').value;
-            if (val === MASTER_PASSWORD) {
-                isExamActive = false;
-                // Kembali ke halaman generator (Reset)
-                window.location.href = window.location.href.split('?')[0];
+            const pw = document.getElementById('exitPassword').value;
+            if (pw === EXIT_PASSWORD) {
+                examActive = false; // Nonaktifkan anti-cheat
+                alert("Berhasil keluar. Jendela akan ditutup / dialihkan.");
+                // Mengalihkan siswa kembali ke halaman utama / generator
+                window.location.href = window.location.href.split('?')[0]; 
             } else {
-                alert("Password Salah!");
+                alert("Password salah!");
             }
         }
-
-        // Mencegah klik kanan (Opsional - mendukung anti contek)
-        document.addEventListener('contextmenu', event => event.preventDefault());
     </script>
 </body>
 </html>
