@@ -62,10 +62,10 @@
         <h2>Generator Link Aman</h2>
         <p>SDN Sukabumi 2 Kota Probolinggo</p>
         <input type="url" id="gformUrl" placeholder="Masukkan Link Google Form...">
-        <button onclick="generateLink()">AKTIFKAN MODE UJIAN AMAN</button>
+        <button type="button" onclick="generateLink()">AKTIFKAN MODE UJIAN AMAN</button>
         <div id="resultArea" class="result-box">
             <input type="text" id="generatedLink" readonly>
-            <button onclick="copyLink()" style="background-color: #28a745;">Salin Link untuk Siswa</button>
+            <button type="button" onclick="copyLink()" style="background-color: #28a745;">Salin Link untuk Siswa</button>
         </div>
     </div>
 
@@ -78,7 +78,7 @@
                     <div id="wake-status">Memulai sistem anti-tidur...</div>
                 </div>
             </div>
-            <button onclick="requestExit()" style="width:auto; padding:5px 10px; background:var(--danger);">Selesai</button>
+            <button type="button" onclick="requestExit()" style="width:auto; padding:5px 10px; background:var(--danger);">Selesai</button>
         </div>
         <iframe id="form-frame" src=""></iframe>
     </div>
@@ -90,7 +90,7 @@
             <p><strong>Segera lapor ke Guru Pengawas.</strong></p>
             <hr>
             <input type="password" id="cheatPassword" placeholder="Password Guru">
-            <button onclick="unlockExam()">BUKA KEMBALI UJIAN</button>
+            <button type="button" onclick="unlockExam()">BUKA KEMBALI UJIAN</button>
         </div>
     </div>
 
@@ -99,12 +99,13 @@
             <h3>Konfirmasi Selesai</h3>
             <p>Masukkan password "sambadsal" untuk menutup aplikasi.</p>
             <input type="password" id="exitPassword" placeholder="Password">
-            <button onclick="confirmExit()">Keluar Sekarang</button>
-            <button onclick="document.getElementById('exit-overlay').style.display='none'" style="background:#6c757d">Batal</button>
+            <button type="button" onclick="confirmExit()">Keluar Sekarang</button>
+            <button type="button" onclick="document.getElementById('exit-overlay').style.display='none'" style="background:#6c757d">Batal</button>
         </div>
     </div>
 
     <script>
+        // Password diset di sini
         const EXIT_PASSWORD = "sambadsal";
         let examActive = false;
         let wakeLock = null;
@@ -132,13 +133,19 @@
             }
         }
 
+        // Fungsi Buka Kunci (Guru)
         function unlockExam() {
-            if (document.getElementById('cheatPassword').value === EXIT_PASSWORD) {
+            // Mengambil input dan menghapus spasi ekstra di awal/akhir input
+            const pwInput = document.getElementById('cheatPassword').value.trim();
+            
+            if (pwInput === EXIT_PASSWORD) {
                 document.getElementById('cheat-overlay').style.display = 'none';
                 document.getElementById('form-frame').style.visibility = 'visible';
                 document.getElementById('cheatPassword').value = '';
                 requestWakeLock(); // Minta lock lagi setelah dibuka
-            } else { alert("Password Guru Salah!"); }
+            } else { 
+                alert("Password Guru Salah! Pastikan huruf kecil semua tanpa spasi."); 
+            }
         }
 
         // Inisialisasi Mode Berdasarkan URL
@@ -176,6 +183,12 @@
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
+            
+            // Auto convert viewform to embedded mode for full screen
+            if(url.includes('/viewform')) {
+                url = url.split('?')[0] + '?embedded=true';
+            }
+
             const finalLink = window.location.href.split('?')[0] + "?exam=" + encodeURIComponent(url);
             document.getElementById('generatedLink').value = finalLink;
             document.getElementById('resultArea').style.display = 'block';
@@ -189,11 +202,17 @@
 
         function requestExit() { document.getElementById('exit-overlay').style.display = 'flex'; }
         
+        // Fungsi Keluar / Selesai (Siswa)
         function confirmExit() {
-            if (document.getElementById('exitPassword').value === EXIT_PASSWORD) {
+            // Mengambil input dan menghapus spasi ekstra di awal/akhir input
+            const exitInput = document.getElementById('exitPassword').value.trim();
+
+            if (exitInput === EXIT_PASSWORD) {
                 examActive = false;
-                window.location.href = window.location.href.split('?')[0];
-            } else { alert("Password Salah!"); }
+                window.location.href = window.location.href.split('?')[0]; // Kembali ke home
+            } else { 
+                alert("Password Salah! Pastikan huruf kecil semua tanpa spasi."); 
+            }
         }
     </script>
 </body>
