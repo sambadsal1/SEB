@@ -45,13 +45,12 @@
 
         /* OVERLAY PELANGGARAN */
         .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.95);
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
             display: none; justify-content: center; align-items: center; z-index: 9999;
             flex-direction: column; color: white; text-align: center; padding: 20px;
         }
         .overlay-box { background: white; color: black; padding: 30px; border-radius: 10px; width: 90%; max-width: 400px; }
         
-        /* STATUS WAKE LOCK */
         #wake-status { font-size: 10px; color: #e0f7fa; margin-top: 5px; }
     </style>
 </head>
@@ -75,7 +74,7 @@
                 <img src="logo.png" onerror="this.src='https://via.placeholder.com/40?text=S'">
                 <div>
                     <div style="font-weight:bold; font-size:14px;">Asesmen SDN Sukabumi 2</div>
-                    <div id="wake-status">Memulai sistem anti-tidur...</div>
+                    <div id="wake-status">Anti-Sleep Aktif</div>
                 </div>
             </div>
             <button type="button" onclick="requestExit()" style="width:auto; padding:5px 10px; background:var(--danger);">Selesai</button>
@@ -86,8 +85,8 @@
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger)">AKSES TERKUNCI!</h2>
-            <p>Sistem mendeteksi Anda mencoba membuka aplikasi lain atau menggunakan fitur mengambang.</p>
-            <p><strong>Segera lapor ke Guru Pengawas.</strong></p>
+            <p>Siswa mencoba keluar aplikasi atau melakukan refresh ilegal.</p>
+            <p><strong>Hubungi Guru untuk Membuka.</strong></p>
             <hr>
             <input type="password" id="cheatPassword" placeholder="Password Guru">
             <button type="button" onclick="unlockExam()">BUKA KEMBALI UJIAN</button>
@@ -97,65 +96,57 @@
     <div id="exit-overlay" class="overlay">
         <div class="overlay-box">
             <h3>Konfirmasi Selesai</h3>
-            <p>Masukkan password "sambadsal" untuk menutup aplikasi.</p>
+            <p>Masukkan password "sambadsal" untuk keluar.</p>
             <input type="password" id="exitPassword" placeholder="Password">
             <button type="button" onclick="confirmExit()">Keluar Sekarang</button>
-            <button type="button" onclick="document.getElementById('exit-overlay').style.display='none'" style="background:#6c757d">Batal</button>
+            <button type="button" id="btnCancelExit" style="background:#6c757d">Batal</button>
         </div>
     </div>
 
     <script>
         const EXIT_PASSWORD = "sambadsal";
         let examActive = false;
-        let isLocked = false; // FLAG untuk mencegah looping penguncian
         let wakeLock = null;
 
-        // --- SISTEM LAYAR SELALU AKTIF (WAKE LOCK) ---
-        async function requestWakeLock() {
-            try {
-                if ('wakeLock' in navigator) {
-                    wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('wake-status').innerText = "✓ Layar Tetap Aktif";
-                }
-            } catch (err) {
-                document.getElementById('wake-status').innerText = "⚠ Layar Auto-Sleep Aktif";
+        // --- SISTEM ANTI-REFRESH (PERSISTENCE) ---
+        function checkPersistentLock() {
+            if (localStorage.getItem('isLockedSukabumi2') === 'true') {
+                showLockOverlay();
             }
+        }
+
+        function showLockOverlay() {
+            localStorage.setItem('isLockedSukabumi2', 'true');
+            document.getElementById('cheat-overlay').style.display = 'flex';
+            document.getElementById('form-frame').style.visibility = 'hidden';
         }
 
         // --- SISTEM DETEKSI PELANGGARAN ---
         function triggerLock() {
-            // Hanya kunci jika ujian aktif dan status layar sedang TIDAK terkunci
-            if (examActive && !isLocked) {
-                isLocked = true; // Set flag menjadi terkunci
-                document.getElementById('cheat-overlay').style.display = 'flex';
-                document.getElementById('form-frame').style.visibility = 'hidden';
+            if (examActive) {
+                // Beri jeda sangat singkat untuk memastikan bukan karena klik iframe
+                setTimeout(() => {
+                    if (document.activeElement !== document.getElementById('form-frame')) {
+                        showLockOverlay();
+                    }
+                }, 100);
             }
         }
 
-        // --- FUNGSI GURU BUKA KUNCI ---
         function unlockExam() {
             const pwInput = document.getElementById('cheatPassword').value.trim();
-            
             if (pwInput === EXIT_PASSWORD) {
-                // Buka tampilan overlay-nya dulu
+                localStorage.removeItem('isLockedSukabumi2');
                 document.getElementById('cheat-overlay').style.display = 'none';
                 document.getElementById('form-frame').style.visibility = 'visible';
                 document.getElementById('cheatPassword').value = '';
-                
-                // JEDA 1 DETIK (COOLDOWN)
-                // Memberikan waktu agar animasi keyboard HP menutup sempurna tanpa memicu triggerLock()
-                setTimeout(() => {
-                    isLocked = false; // Kembalikan status menjadi tidak terkunci
-                    window.focus(); // Paksa fokus kembali ke browser
-                    requestWakeLock(); // Aktifkan anti-sleep lagi
-                }, 1000);
-
+                window.focus();
             } else { 
-                alert("Password Guru Salah! Pastikan huruf kecil semua."); 
+                alert("Password Salah!"); 
             }
         }
 
-        // Inisialisasi Mode Berdasarkan URL
+        // Inisialisasi
         const urlParams = new URLSearchParams(window.location.search);
         const examUrl = urlParams.get('exam');
 
@@ -165,35 +156,29 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
             
-            requestWakeLock();
+            checkPersistentLock();
 
-            // Event Listeners Anti-Cheat (Hanya berjalan jika isLocked = false)
+            // Hanya kunci jika benar-benar pindah tab/aplikasi
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState === 'visible') {
-                    if (!isLocked) requestWakeLock();
-                } else {
-                    triggerLock();
-                }
+                if (document.visibilityState !== 'visible') showLockOverlay();
             });
 
-            window.addEventListener('blur', triggerLock);
-            
-            window.addEventListener('resize', () => {
-                // Deteksi split screen (dikecualikan saat sedang mengetik password / terkunci)
-                if (!isLocked) triggerLock();
+            // Deteksi jika jendela kehilangan fokus (kecuali fokus ke iframe soal)
+            window.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement !== document.getElementById('form-frame')) {
+                        showLockOverlay();
+                    }
+                }, 200);
             });
         }
 
-        // Fungsi Generator
+        // Generator functions
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
-            
-            if(url.includes('/viewform')) {
-                url = url.split('?')[0] + '?embedded=true';
-            }
-
-            const finalLink = window.location.href.split('?')[0] + "?exam=" + encodeURIComponent(url);
+            if(url.includes('/viewform')) url = url.split('?')[0] + '?embedded=true';
+            const finalLink = window.location.origin + window.location.pathname + "?exam=" + encodeURIComponent(url);
             document.getElementById('generatedLink').value = finalLink;
             document.getElementById('resultArea').style.display = 'block';
         }
@@ -201,34 +186,20 @@
         function copyLink() {
             document.getElementById('generatedLink').select();
             document.execCommand('copy');
-            alert("Link berhasil disalin!");
+            alert("Link disalin!");
         }
 
-        function requestExit() { 
-            // Menonaktifkan sementara pendeteksi agar mengetik password keluar tidak terkunci
-            isLocked = true; 
-            document.getElementById('exit-overlay').style.display = 'flex'; 
-        }
+        function requestExit() { document.getElementById('exit-overlay').style.display = 'flex'; }
         
         function confirmExit() {
-            const exitInput = document.getElementById('exitPassword').value.trim();
-
-            if (exitInput === EXIT_PASSWORD) {
-                examActive = false;
-                window.location.href = window.location.href.split('?')[0]; 
-            } else { 
-                alert("Password Salah!"); 
-            }
+            if (document.getElementById('exitPassword').value.trim() === EXIT_PASSWORD) {
+                localStorage.removeItem('isLockedSukabumi2');
+                window.location.href = window.location.origin + window.location.pathname;
+            } else { alert("Password Salah!"); }
         }
 
-        // Menambahkan fungsi tombol Batal pada menu exit agar deteksi aktif kembali
-        document.querySelector('#exit-overlay button:last-child').onclick = function() {
+        document.getElementById('btnCancelExit').onclick = function() {
             document.getElementById('exit-overlay').style.display = 'none';
-            document.getElementById('exitPassword').value = '';
-            setTimeout(() => {
-                isLocked = false;
-                window.focus();
-            }, 500);
         };
     </script>
 </body>
