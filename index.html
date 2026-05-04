@@ -94,11 +94,10 @@
 
     <div id="exit-overlay" class="overlay">
         <div class="overlay-box">
-            <h3>Konfirmasi Selesai</h3>
-            <p>Masukkan password untuk menutup ujian.</p>
-            <input type="password" id="exitPassword" placeholder="Masukkan Password">
-            <button type="button" onclick="confirmExit()">Keluar Sekarang</button>
-            <button type="button" id="btnCancelExit" style="background:#6c757d; margin-top:10px;">Batal</button>
+            <h3 style="color:var(--dark-blue);">Konfirmasi Selesai</h3>
+            <p>Apakah Anda yakin ingin menyelesaikan ujian dan keluar?</p>
+            <button type="button" onclick="confirmExit()" style="background-color: var(--danger);">Ya, Selesai</button>
+            <button type="button" id="btnCancelExit" style="background:#6c757d; margin-top:10px;">Tidak, Batal</button>
         </div>
     </div>
 
@@ -106,7 +105,7 @@
         const PASS = "sambadsal";
         let examActive = false;
         let isLocked = false;
-        let protectionEnabled = false; // Flag baru: Proteksi aktif hanya setelah loading selesai
+        let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let wakeLock = null;
         let initialHeight = window.innerHeight;
@@ -147,7 +146,7 @@
                 setTimeout(() => {
                     unlockingInProgress = false;
                     enableAntiSleep();
-                    initialHeight = window.innerHeight; // Reset patokan tinggi layar
+                    initialHeight = window.innerHeight; 
                 }, 2000);
             } else {
                 alert("Password Salah!");
@@ -163,12 +162,18 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
-            // Jika status tersimpan memang terkunci dari sebelumnya
+            // LOGIKA BARU: Bersihkan memori lock JIKA ini adalah tab/sesi yang benar-benar baru dibuka (seperti scan QR)
+            if (!sessionStorage.getItem('exam_session_active')) {
+                localStorage.removeItem('sukabumi2_locked');
+                sessionStorage.setItem('exam_session_active', 'true');
+            }
+
+            // Jika status tersimpan memang terkunci dari sebelumnya (berlaku jika siswa Refresh halaman)
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
                 protectionEnabled = true;
                 lockNow();
             } else {
-                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI
+                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA
                 setTimeout(() => {
                     protectionEnabled = true;
                     enableAntiSleep();
@@ -191,7 +196,6 @@
             });
 
             window.addEventListener('resize', () => {
-                // Abaikan jika hanya selisih kecil (biasanya karena muncul/hilang bar alamat browser)
                 const heightDiff = Math.abs(window.innerHeight - initialHeight);
                 if (heightDiff > 100) { 
                     lockNow();
@@ -199,7 +203,7 @@
             });
         }
 
-        // FUNGSI GENERATOR & EXIT (Sama seperti sebelumnya)
+        // FUNGSI GENERATOR
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
@@ -208,22 +212,26 @@
             document.getElementById('generatedLink').value = final;
             document.getElementById('resultArea').style.display = 'block';
         }
+        
         function copyLink() {
             document.getElementById('generatedLink').select();
             document.execCommand("copy");
             alert("Link disalin!");
         }
+
+        // EXIT (Diperbarui tanpa password)
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
         }
+        
         function confirmExit() {
-            const input = document.getElementById('exitPassword').value.trim().toLowerCase();
-            if (input === PASS) {
-                localStorage.removeItem('sukabumi2_locked');
-                window.location.href = window.location.origin + window.location.pathname;
-            } else { alert("Password Salah!"); }
+            // Langsung hapus sesi dan kembali ke halaman awal tanpa cek password
+            localStorage.removeItem('sukabumi2_locked');
+            sessionStorage.removeItem('exam_session_active');
+            window.location.href = window.location.origin + window.location.pathname;
         }
+        
         document.getElementById('btnCancelExit').onclick = function() {
             document.getElementById('exit-overlay').style.display = 'none';
             setTimeout(() => { unlockingInProgress = false; }, 1000);
