@@ -107,6 +107,7 @@
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
+        let isRotating = false; // FLAG BARU: Untuk rotasi layar
         let wakeLock = null;
         let initialHeight = window.innerHeight;
 
@@ -162,13 +163,13 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
-            // LOGIKA BARU: Bersihkan memori lock JIKA ini adalah tab/sesi yang benar-benar baru dibuka (seperti scan QR)
+            // Bersihkan memori lock JIKA ini adalah tab/sesi yang baru dibuka (scan QR)
             if (!sessionStorage.getItem('exam_session_active')) {
                 localStorage.removeItem('sukabumi2_locked');
                 sessionStorage.setItem('exam_session_active', 'true');
             }
 
-            // Jika status tersimpan memang terkunci dari sebelumnya (berlaku jika siswa Refresh halaman)
+            // Jika status tersimpan memang terkunci dari sebelumnya
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
                 protectionEnabled = true;
                 lockNow();
@@ -195,7 +196,18 @@
                 }, 1000);
             });
 
+            // LOGIKA BARU: DETEKSI ROTASI LAYAR HP
+            window.addEventListener('orientationchange', () => {
+                isRotating = true; // Aktifkan mode perlindungan rotasi
+                setTimeout(() => {
+                    initialHeight = window.innerHeight; // Perbarui patokan tinggi untuk orientasi baru
+                    isRotating = false; // Matikan perlindungan rotasi setelah layar stabil
+                }, 1000);
+            });
+
             window.addEventListener('resize', () => {
+                if (isRotating) return; // ABAIKAN perubahan ukuran layar jika HP sedang di-rotasi
+
                 const heightDiff = Math.abs(window.innerHeight - initialHeight);
                 if (heightDiff > 100) { 
                     lockNow();
@@ -219,14 +231,13 @@
             alert("Link disalin!");
         }
 
-        // EXIT (Diperbarui tanpa password)
+        // EXIT
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
         }
         
         function confirmExit() {
-            // Langsung hapus sesi dan kembali ke halaman awal tanpa cek password
             localStorage.removeItem('sukabumi2_locked');
             sessionStorage.removeItem('exam_session_active');
             window.location.href = window.location.origin + window.location.pathname;
