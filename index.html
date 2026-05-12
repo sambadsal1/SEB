@@ -102,12 +102,13 @@
     </div>
 
     <script>
-        const PASS = "sambadsal";
+        // 1. Password diperbarui menjadi r4h4514
+        const PASS = "r4h4514";
         let examActive = false;
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
-        let isRotating = false; // FLAG BARU: Untuk rotasi layar
+        let isRotating = false; 
         let wakeLock = null;
         let initialHeight = window.innerHeight;
 
@@ -163,27 +164,23 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
-            // Bersihkan memori lock JIKA ini adalah tab/sesi yang baru dibuka (scan QR)
-            if (!sessionStorage.getItem('exam_session_active')) {
-                localStorage.removeItem('sukabumi2_locked');
-                sessionStorage.setItem('exam_session_active', 'true');
-            }
+            // 2. PERBAIKAN BUG BYPASS:
+            // Logika pembersihan otomatis saat scan baru dihapus agar status lock tetap persisten.
+            // Aplikasi hanya akan terbuka jika localStorage 'sukabumi2_locked' memang kosong/null.
 
-            // Jika status tersimpan memang terkunci dari sebelumnya
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
-                protectionEnabled = true;
+                protectionEnabled = true; // Langsung aktifkan proteksi jika status memang terkunci
                 lockNow();
             } else {
-                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA
+                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA (NORMAL)
                 setTimeout(() => {
                     protectionEnabled = true;
                     enableAntiSleep();
                     initialHeight = window.innerHeight;
-                    console.log("Proteksi ujian diaktifkan.");
                 }, 5000);
             }
 
-            // PENDETEKSI HANYA JALAN JIKA PROTEKSI AKTIF
+            // LISTENERS (Tetap dipertahankan)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
@@ -196,18 +193,16 @@
                 }, 1000);
             });
 
-            // LOGIKA BARU: DETEKSI ROTASI LAYAR HP
             window.addEventListener('orientationchange', () => {
-                isRotating = true; // Aktifkan mode perlindungan rotasi
+                isRotating = true;
                 setTimeout(() => {
-                    initialHeight = window.innerHeight; // Perbarui patokan tinggi untuk orientasi baru
-                    isRotating = false; // Matikan perlindungan rotasi setelah layar stabil
+                    initialHeight = window.innerHeight;
+                    isRotating = false;
                 }, 1000);
             });
 
             window.addEventListener('resize', () => {
-                if (isRotating) return; // ABAIKAN perubahan ukuran layar jika HP sedang di-rotasi
-
+                if (isRotating) return;
                 const heightDiff = Math.abs(window.innerHeight - initialHeight);
                 if (heightDiff > 100) { 
                     lockNow();
@@ -231,7 +226,7 @@
             alert("Link disalin!");
         }
 
-        // EXIT
+        // EXIT (Konfirmasi Ya/Tidak tanpa password)
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
@@ -239,7 +234,6 @@
         
         function confirmExit() {
             localStorage.removeItem('sukabumi2_locked');
-            sessionStorage.removeItem('exam_session_active');
             window.location.href = window.location.origin + window.location.pathname;
         }
         
