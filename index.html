@@ -14,7 +14,7 @@
 
         body, html {
             margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif;
-            background-color: #000;
+            background-color: #000; /* Background dasar hitam untuk proteksi */
             height: 100%; overflow: hidden;
             -webkit-user-select: none; user-select: none;
         }
@@ -46,7 +46,7 @@
         .exam-header img { height: 35px; background: white; border-radius: 50%; padding: 2px; }
         iframe { flex-grow: 1; border: none; width: 100%; background: white; }
 
-        /* OVERLAY / LAYAR KUNCI */
+        /* OVERLAY / LAYAR KUNCI (Dibuat sangat solid) */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000;
             display: none; justify-content: center; align-items: center; z-index: 99999;
@@ -84,7 +84,6 @@
         <iframe id="form-frame" src=""></iframe>
     </div>
 
-    <!-- Cheat overlay tampil saat terkunci -->
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
@@ -96,7 +95,6 @@
         </div>
     </div>
 
-    <!-- Exit overlay -->
     <div id="exit-overlay" class="overlay">
         <div class="overlay-box">
             <h3 style="color:var(--dark-blue);">Konfirmasi Selesai</h3>
@@ -112,22 +110,22 @@
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
-        let isRotating = false;
+        let isRotating = false; 
         let initialHeight = window.innerHeight;
 
-        // Fungsi kunci instan
         function lockNow() {
             if (examActive && protectionEnabled && !unlockingInProgress && !isLocked) {
                 isLocked = true;
                 localStorage.setItem('sukabumi2_locked', 'true');
                 
+                // EKSEKUSI INSTAN: Sembunyikan konten, tampilkan overlay hitam
                 document.getElementById('exam-mode').style.display = 'none';
                 document.getElementById('cheat-overlay').style.display = 'flex';
                 
+                // Kosongkan src sementara untuk memastikan screenshot tidak menangkap render terakhir
                 const frame = document.getElementById('form-frame');
                 const currentSrc = frame.src;
                 frame.setAttribute('data-src', currentSrc);
-                // Kosongkan konten supaya screenshot hanya menangkap layar kunci
                 frame.src = "about:blank";
             }
         }
@@ -139,6 +137,7 @@
                 isLocked = false;
                 localStorage.removeItem('sukabumi2_locked');
                 
+                // Kembalikan konten
                 document.getElementById('cheat-overlay').style.display = 'none';
                 document.getElementById('exam-mode').style.display = 'flex';
                 const frame = document.getElementById('form-frame');
@@ -149,46 +148,9 @@
                     unlockingInProgress = false; 
                     initialHeight = window.innerHeight;
                 }, 1000);
-            } else { 
-                alert("Password Salah!"); 
-            }
+            } else { alert("Password Salah!"); }
         }
 
-        // ========== DETEKSI SCREENSHOT TAMBAHAN ==========
-
-        // 1. Deteksi sentuhan 3 jari sekaligus (gesture screenshot di banyak HP)
-        document.addEventListener('touchstart', (e) => {
-            if (e.touches.length >= 3) {
-                // Kemungkinan besar gesture screenshot
-                lockNow();
-            }
-        }, { passive: false });
-
-        // 2. Deteksi tombol PrintScreen (keyCode 44 - kadang masih bisa ditangkap)
-        document.addEventListener('keydown', (e) => {
-            if (e.keyCode === 44) { // PrintScreen
-                e.preventDefault();
-                lockNow();
-            }
-            // Kombinasi screenshot umum: Cmd+Shift+4 (Mac) / Ctrl+Shift+S (Windows)
-            if ((e.metaKey && e.shiftKey && e.key === '4') || 
-                (e.ctrlKey && e.shiftKey && e.key === 'S')) {
-                e.preventDefault();
-                lockNow();
-            }
-            // Beberapa tools menggunakan Ctrl+Shift+E atau lainnya, bisa ditambah
-        });
-
-        // 3. Blokir API perekaman layar (getDisplayMedia)
-        if (navigator.mediaDevices && navigator.mediaDevices.getDisplayMedia) {
-            const originalGetDisplayMedia = navigator.mediaDevices.getDisplayMedia.bind(navigator.mediaDevices);
-            navigator.mediaDevices.getDisplayMedia = function() {
-                lockNow();
-                return Promise.reject(new Error('Perekaman layar tidak diizinkan'));
-            };
-        }
-
-        // ========== LOADER UJIAN ==========
         const urlParams = new URLSearchParams(window.location.search);
         const examUrl = urlParams.get('exam');
 
@@ -198,6 +160,7 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
+            // Persistent Lock Check
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
                 protectionEnabled = true;
                 lockNow();
@@ -209,19 +172,18 @@
                 }, 5000);
             }
 
-            // Deteksi tab tidak aktif / blur
+            // DETEKSI INSTAN (Tanpa Timeout)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
             window.addEventListener('blur', () => {
-                // Fokus hilang (misal panel notifikasi) -> kunci
+                // Langsung kunci jika fokus hilang (biasanya saat panel screenshot muncul)
                 if (document.activeElement !== document.getElementById('form-frame')) {
                     lockNow();
                 }
             });
 
-            // Perubahan orientasi / ukuran tiba-tiba (indikasi panel screenshot)
             window.addEventListener('orientationchange', () => {
                 isRotating = true;
                 setTimeout(() => { initialHeight = window.innerHeight; isRotating = false; }, 1000);
@@ -229,12 +191,10 @@
 
             window.addEventListener('resize', () => {
                 if (isRotating) return;
-                // Jika tinggi berubah drastis >200px, curigai panel screenshot
-                if (Math.abs(window.innerHeight - initialHeight) > 200) lockNow();
+                if (Math.abs(window.innerHeight - initialHeight) > 100) lockNow();
             });
         }
 
-        // ========== FUNGSI GENERATOR LINK ==========
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
