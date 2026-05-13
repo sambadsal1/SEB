@@ -11,9 +11,18 @@
             --white: #ffffff;
             --danger: #dc3545;
         }
+
+        /* FITUR ANTI-COPY & ANTI-SCREENSHOT (CSS) */
         body, html {
             margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif;
             background-color: #f0f8ff; height: 100%; overflow: hidden;
+            /* Mencegah seleksi teks */
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            /* Mencegah menu konteks pada perangkat mobile */
+            -webkit-touch-callout: none;
         }
         
         /* MODE GENERATOR */
@@ -53,9 +62,7 @@
         .status-badge { font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
     </style>
 </head>
-<body>
-
-    <div id="generator-mode">
+<body oncontextmenu="return false;"> <div id="generator-mode">
         <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
         <h2>Generator Ujian Aman</h2>
         <p>SDN Sukabumi 2 Kota Probolinggo</p>
@@ -78,13 +85,13 @@
             </div>
             <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px;">Selesai</button>
         </div>
-        <iframe id="form-frame" src=""></iframe>
+        <iframe id="form-frame" src="" oncontextmenu="return false;"></iframe>
     </div>
 
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
-            <p>Terdeteksi aktivitas di luar aplikasi ujian.</p>
+            <p>Terdeteksi screenshot, pindah aplikasi, atau aktivitas mencurigakan lainnya.</p>
             <p style="font-size:14px; color:#555;">Minta guru pengawas untuk membuka kembali.</p>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <input type="password" id="cheatPassword" placeholder="Password Guru">
@@ -102,7 +109,7 @@
     </div>
 
     <script>
-        // 1. Password diperbarui menjadi r4h4514
+        // Password tetap r4h4514
         const PASS = "r4h4514";
         let examActive = false;
         let isLocked = false;
@@ -112,7 +119,6 @@
         let wakeLock = null;
         let initialHeight = window.innerHeight;
 
-        // ANTI SLEEP
         async function enableAntiSleep() {
             if ('wakeLock' in navigator) {
                 try {
@@ -124,7 +130,6 @@
             }
         }
 
-        // FUNGSI KUNCI
         function lockNow() {
             if (examActive && protectionEnabled && !unlockingInProgress && !isLocked) {
                 isLocked = true;
@@ -134,7 +139,6 @@
             }
         }
 
-        // FUNGSI UNLOCK
         function unlockExam() {
             const input = document.getElementById('cheatPassword').value.trim().toLowerCase();
             if (input === PASS) {
@@ -164,33 +168,39 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
-            // 2. PERBAIKAN BUG BYPASS:
-            // Logika pembersihan otomatis saat scan baru dihapus agar status lock tetap persisten.
-            // Aplikasi hanya akan terbuka jika localStorage 'sukabumi2_locked' memang kosong/null.
-
+            // Bug bypass scan diperbaiki: Status lock tetap persisten
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
-                protectionEnabled = true; // Langsung aktifkan proteksi jika status memang terkunci
+                protectionEnabled = true;
                 lockNow();
             } else {
-                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA (NORMAL)
                 setTimeout(() => {
                     protectionEnabled = true;
                     enableAntiSleep();
                     initialHeight = window.innerHeight;
-                }, 5000);
+                }, 5000); // Safe start 5 detik
             }
 
-            // LISTENERS (Tetap dipertahankan)
+            // ANTI SCREENSHOT: Deteksi saat jendela kehilangan fokus
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
             window.addEventListener('blur', () => {
+                // Saat tombol screenshot ditekan, fokus biasanya hilang sejenak
                 setTimeout(() => {
                     if (document.activeElement !== document.getElementById('form-frame')) {
                         lockNow();
                     }
-                }, 1000);
+                }, 100); // Respon dipercepat untuk memotong proses screenshot
+            });
+
+            // Mencegah PrintScreen pada laptop/Keyboard
+            window.addEventListener('keyup', (e) => {
+                if (e.key === 'PrintScreen') {
+                    navigator.clipboard.writeText(""); // Kosongkan clipboard
+                    lockNow();
+                    alert('Screenshot dilarang!');
+                }
             });
 
             window.addEventListener('orientationchange', () => {
@@ -210,7 +220,6 @@
             });
         }
 
-        // FUNGSI GENERATOR
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
@@ -226,7 +235,6 @@
             alert("Link disalin!");
         }
 
-        // EXIT (Konfirmasi Ya/Tidak tanpa password)
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
