@@ -11,12 +11,9 @@
             --white: #ffffff;
             --danger: #dc3545;
         }
-
         body, html {
             margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif;
-            background-color: #000; /* Background dasar hitam untuk proteksi */
-            height: 100%; overflow: hidden;
-            -webkit-user-select: none; user-select: none;
+            background-color: #f0f8ff; height: 100%; overflow: hidden;
         }
         
         /* MODE GENERATOR */
@@ -38,7 +35,7 @@
         .result-box { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; display: none; }
 
         /* MODE UJIAN */
-        #exam-mode { display: none; flex-direction: column; height: 100vh; width: 100vw; background: #fff; }
+        #exam-mode { display: none; flex-direction: column; height: 100vh; width: 100vw; }
         .exam-header {
             background-color: var(--primary-blue); color: white; padding: 8px 15px;
             display: flex; justify-content: space-between; align-items: center;
@@ -46,20 +43,20 @@
         .exam-header img { height: 35px; background: white; border-radius: 50%; padding: 2px; }
         iframe { flex-grow: 1; border: none; width: 100%; background: white; }
 
-        /* OVERLAY / LAYAR KUNCI (Dibuat sangat solid) */
+        /* OVERLAY / LAYAR KUNCI */
         .overlay {
-            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: #000;
-            display: none; justify-content: center; align-items: center; z-index: 99999;
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
+            display: none; justify-content: center; align-items: center; z-index: 9999;
             flex-direction: column; color: white; text-align: center; padding: 20px;
         }
         .overlay-box { background: white; color: black; padding: 30px; border-radius: 12px; width: 90%; max-width: 380px; }
         .status-badge { font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
     </style>
 </head>
-<body oncontextmenu="return false;">
+<body>
 
     <div id="generator-mode">
-        <img src="logo.png" alt="Logo" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
+        <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
         <h2>Generator Ujian Aman</h2>
         <p>SDN Sukabumi 2 Kota Probolinggo</p>
         <input type="url" id="gformUrl" placeholder="Tempel Link Google Form di sini...">
@@ -87,8 +84,8 @@
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
-            <p>Terdeteksi screenshot atau aktivitas di luar aplikasi.</p>
-            <p style="font-size:14px; color:#555;">Minta guru untuk memasukkan password.</p>
+            <p>Terdeteksi aktivitas di luar aplikasi ujian.</p>
+            <p style="font-size:14px; color:#555;">Minta guru pengawas untuk membuka kembali.</p>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <input type="password" id="cheatPassword" placeholder="Password Guru">
             <button type="button" onclick="unlockExam()">BUKA KEMBALI</button>
@@ -98,57 +95,64 @@
     <div id="exit-overlay" class="overlay">
         <div class="overlay-box">
             <h3 style="color:var(--dark-blue);">Konfirmasi Selesai</h3>
-            <p>Yakin ingin menyelesaikan ujian?</p>
+            <p>Apakah Anda yakin ingin menyelesaikan ujian dan keluar?</p>
             <button type="button" onclick="confirmExit()" style="background-color: var(--danger);">Ya, Selesai</button>
             <button type="button" id="btnCancelExit" style="background:#6c757d; margin-top:10px;">Tidak, Batal</button>
         </div>
     </div>
 
     <script>
+        // 1. Password diperbarui menjadi r4h4514
         const PASS = "r4h4514";
         let examActive = false;
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let isRotating = false; 
+        let wakeLock = null;
         let initialHeight = window.innerHeight;
 
+        // ANTI SLEEP
+        async function enableAntiSleep() {
+            if ('wakeLock' in navigator) {
+                try {
+                    wakeLock = await navigator.wakeLock.request('screen');
+                    document.getElementById('wake-status').innerText = "Anti-Sleep Aktif";
+                } catch (err) {
+                    document.getElementById('wake-status').innerText = "Layar Manual";
+                }
+            }
+        }
+
+        // FUNGSI KUNCI
         function lockNow() {
             if (examActive && protectionEnabled && !unlockingInProgress && !isLocked) {
                 isLocked = true;
                 localStorage.setItem('sukabumi2_locked', 'true');
-                
-                // EKSEKUSI INSTAN: Sembunyikan konten, tampilkan overlay hitam
-                document.getElementById('exam-mode').style.display = 'none';
                 document.getElementById('cheat-overlay').style.display = 'flex';
-                
-                // Kosongkan src sementara untuk memastikan screenshot tidak menangkap render terakhir
-                const frame = document.getElementById('form-frame');
-                const currentSrc = frame.src;
-                frame.setAttribute('data-src', currentSrc);
-                frame.src = "about:blank";
+                document.getElementById('form-frame').style.visibility = 'hidden';
             }
         }
 
+        // FUNGSI UNLOCK
         function unlockExam() {
-            const input = document.getElementById('cheatPassword').value.trim();
+            const input = document.getElementById('cheatPassword').value.trim().toLowerCase();
             if (input === PASS) {
                 unlockingInProgress = true; 
                 isLocked = false;
                 localStorage.removeItem('sukabumi2_locked');
-                
-                // Kembalikan konten
                 document.getElementById('cheat-overlay').style.display = 'none';
-                document.getElementById('exam-mode').style.display = 'flex';
-                const frame = document.getElementById('form-frame');
-                frame.src = frame.getAttribute('data-src');
-                
+                document.getElementById('form-frame').style.visibility = 'visible';
                 document.getElementById('cheatPassword').value = '';
-                setTimeout(() => { 
-                    unlockingInProgress = false; 
-                    initialHeight = window.innerHeight;
-                }, 1000);
-            } else { alert("Password Salah!"); }
+                
+                setTimeout(() => {
+                    unlockingInProgress = false;
+                    enableAntiSleep();
+                    initialHeight = window.innerHeight; 
+                }, 2000);
+            } else {
+                alert("Password Salah!");
+            }
         }
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -160,41 +164,53 @@
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
 
-            // Persistent Lock Check
+            // 2. PERBAIKAN BUG BYPASS:
+            // Logika pembersihan otomatis saat scan baru dihapus agar status lock tetap persisten.
+            // Aplikasi hanya akan terbuka jika localStorage 'sukabumi2_locked' memang kosong/null.
+
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
-                protectionEnabled = true;
+                protectionEnabled = true; // Langsung aktifkan proteksi jika status memang terkunci
                 lockNow();
             } else {
+                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA (NORMAL)
                 setTimeout(() => {
                     protectionEnabled = true;
+                    enableAntiSleep();
                     initialHeight = window.innerHeight;
-                    document.getElementById('wake-status').innerText = "Proteksi Aktif";
                 }, 5000);
             }
 
-            // DETEKSI INSTAN (Tanpa Timeout)
+            // LISTENERS (Tetap dipertahankan)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
             window.addEventListener('blur', () => {
-                // Langsung kunci jika fokus hilang (biasanya saat panel screenshot muncul)
-                if (document.activeElement !== document.getElementById('form-frame')) {
-                    lockNow();
-                }
+                setTimeout(() => {
+                    if (document.activeElement !== document.getElementById('form-frame')) {
+                        lockNow();
+                    }
+                }, 1000);
             });
 
             window.addEventListener('orientationchange', () => {
                 isRotating = true;
-                setTimeout(() => { initialHeight = window.innerHeight; isRotating = false; }, 1000);
+                setTimeout(() => {
+                    initialHeight = window.innerHeight;
+                    isRotating = false;
+                }, 1000);
             });
 
             window.addEventListener('resize', () => {
                 if (isRotating) return;
-                if (Math.abs(window.innerHeight - initialHeight) > 100) lockNow();
+                const heightDiff = Math.abs(window.innerHeight - initialHeight);
+                if (heightDiff > 100) { 
+                    lockNow();
+                }
             });
         }
 
+        // FUNGSI GENERATOR
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
@@ -210,6 +226,7 @@
             alert("Link disalin!");
         }
 
+        // EXIT (Konfirmasi Ya/Tidak tanpa password)
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
@@ -222,7 +239,7 @@
         
         document.getElementById('btnCancelExit').onclick = function() {
             document.getElementById('exit-overlay').style.display = 'none';
-            setTimeout(() => { unlockingInProgress = false; }, 500);
+            setTimeout(() => { unlockingInProgress = false; }, 1000);
         };
     </script>
 </body>
