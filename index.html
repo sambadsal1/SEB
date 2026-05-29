@@ -14,9 +14,14 @@
         body, html {
             margin: 0; padding: 0; font-family: 'Segoe UI', sans-serif;
             background-color: #f0f8ff; height: 100%; overflow: hidden;
+            -webkit-user-select: none;
+            -moz-user-select: none;
+            -ms-user-select: none;
+            user-select: none;
+            -webkit-touch-callout: none;
+            -webkit-tap-highlight-color: rgba(0,0,0,0);
         }
         
-        /* MODE GENERATOR */
         #generator-mode {
             max-width: 600px; margin: 40px auto; background: var(--white);
             padding: 30px; border-radius: 12px; box-shadow: 0 4px 20px rgba(0,0,0,0.15);
@@ -34,7 +39,6 @@
         }
         .result-box { margin-top: 20px; padding: 15px; background: #e9ecef; border-radius: 6px; display: none; }
 
-        /* MODE UJIAN */
         #exam-mode { display: none; flex-direction: column; height: 100vh; width: 100vw; }
         .exam-header {
             background-color: var(--primary-blue); color: white; padding: 8px 15px;
@@ -43,7 +47,6 @@
         .exam-header img { height: 35px; background: white; border-radius: 50%; padding: 2px; }
         iframe { flex-grow: 1; border: none; width: 100%; background: white; }
 
-        /* OVERLAY / LAYAR KUNCI */
         .overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.98);
             display: none; justify-content: center; align-items: center; z-index: 9999;
@@ -51,9 +54,20 @@
         }
         .overlay-box { background: white; color: black; padding: 30px; border-radius: 12px; width: 90%; max-width: 380px; }
         .status-badge { font-size: 10px; background: rgba(255,255,255,0.2); padding: 2px 8px; border-radius: 10px; }
+        
+        #kiosk-gate { display: none; background: #005f8a; color: white; position: fixed; top:0; left:0; width:100%; height:100%; z-index:9998; justify-content:center; align-items:center; flex-direction:column; }
     </style>
 </head>
 <body>
+
+    <div id="kiosk-gate">
+        <div style="background: white; color: black; padding: 30px; border-radius: 12px; width: 85%; max-width: 400px; text-align: center;">
+            <img src="logo.png" alt="Logo" style="max-width: 80px;" onerror="this.src='https://via.placeholder.com/80?text=Logo'">
+            <h3 style="margin-top:15px; color: var(--dark-blue);">Konfirmasi Ujian</h3>
+            <p style="font-size: 14px; color: #555;">Klik tombol di bawah untuk masuk ke mode layar penuh dan memulai ujian.</p>
+            <button type="button" onclick="startKioskMode()" style="background: #28a745;">MULAI UJIAN SEKARANG</button>
+        </div>
+    </div>
 
     <div id="generator-mode">
         <img src="logo.png" alt="Logo SDN Sukabumi 2" class="logo-img" onerror="this.src='https://via.placeholder.com/100?text=Logo'">
@@ -78,13 +92,13 @@
             </div>
             <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px;">Selesai</button>
         </div>
-        <iframe id="form-frame" src=""></iframe>
+        <iframe id="form-frame" src="" allow="fullscreen"></iframe>
     </div>
 
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
-            <p>Terdeteksi aktivitas di luar aplikasi ujian.</p>
+            <p>Terdeteksi keluar dari aplikasi atau mencoba membagi layar (Split Screen).</p>
             <p style="font-size:14px; color:#555;">Minta guru pengawas untuk membuka kembali.</p>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <input type="password" id="cheatPassword" placeholder="Password Guru">
@@ -102,39 +116,47 @@
     </div>
 
     <script>
-        // 1. Password diperbarui menjadi r4h4514
         const PASS = "r4h4514";
         let examActive = false;
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
-        let isRotating = false; 
         let wakeLock = null;
-        let initialHeight = window.innerHeight;
 
-        // ANTI SLEEP
+        // PROTEKSI INPUT & KLIK
+        document.addEventListener('contextmenu', e => e.preventDefault());
+        document.addEventListener('copy', e => e.preventDefault());
+        document.addEventListener('cut', e => e.preventDefault());
+        document.addEventListener('paste', e => e.preventDefault());
+        document.addEventListener('keydown', function(e) {
+            if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
+            if (e.keyCode === 123) return e.preventDefault();
+        });
+
+        // ANTI SLEEP SCREEN
         async function enableAntiSleep() {
             if ('wakeLock' in navigator) {
                 try {
                     wakeLock = await navigator.wakeLock.request('screen');
-                    document.getElementById('wake-status').innerText = "Anti-Sleep Aktif";
+                    document.getElementById('wake-status').innerText = "Mode Kiosk Aktif";
                 } catch (err) {
-                    document.getElementById('wake-status').innerText = "Layar Manual";
+                    document.getElementById('wake-status').innerText = "Mode Kiosk Aktif";
                 }
             }
         }
 
-        // FUNGSI KUNCI
         function lockNow() {
             if (examActive && protectionEnabled && !unlockingInProgress && !isLocked) {
                 isLocked = true;
                 localStorage.setItem('sukabumi2_locked', 'true');
                 document.getElementById('cheat-overlay').style.display = 'flex';
                 document.getElementById('form-frame').style.visibility = 'hidden';
+                if (document.fullscreenElement) {
+                    document.exitFullscreen().catch(() => {});
+                }
             }
         }
 
-        // FUNGSI UNLOCK
         function unlockExam() {
             const input = document.getElementById('cheatPassword').value.trim().toLowerCase();
             if (input === PASS) {
@@ -145,14 +167,34 @@
                 document.getElementById('form-frame').style.visibility = 'visible';
                 document.getElementById('cheatPassword').value = '';
                 
+                triggerFullscreen();
+
                 setTimeout(() => {
                     unlockingInProgress = false;
                     enableAntiSleep();
-                    initialHeight = window.innerHeight; 
-                }, 2000);
+                }, 1500);
             } else {
                 alert("Password Salah!");
             }
+        }
+
+        function triggerFullscreen() {
+            let req = document.documentElement;
+            if (req.requestFullscreen) { req.requestFullscreen(); }
+            else if (req.webkitRequestFullscreen) { req.webkitRequestFullscreen(); }
+            else if (req.mozRequestFullScreen) { req.mozRequestFullScreen(); }
+            else if (req.msRequestFullscreen) { req.msRequestFullscreen(); }
+        }
+
+        function startKioskMode() {
+            triggerFullscreen();
+            document.getElementById('kiosk-gate').style.display = 'none';
+            document.getElementById('exam-mode').style.display = 'flex';
+            
+            setTimeout(() => {
+                protectionEnabled = true;
+                enableAntiSleep();
+            }, 2000);
         }
 
         const urlParams = new URLSearchParams(window.location.search);
@@ -160,27 +202,18 @@
 
         if (examUrl) {
             document.getElementById('generator-mode').style.display = 'none';
-            document.getElementById('exam-mode').style.display = 'flex';
-            document.getElementById('form-frame').src = decodeURIComponent(examUrl);
             examActive = true;
-
-            // 2. PERBAIKAN BUG BYPASS:
-            // Logika pembersihan otomatis saat scan baru dihapus agar status lock tetap persisten.
-            // Aplikasi hanya akan terbuka jika localStorage 'sukabumi2_locked' memang kosong/null.
+            document.getElementById('form-frame').src = decodeURIComponent(examUrl);
 
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
-                protectionEnabled = true; // Langsung aktifkan proteksi jika status memang terkunci
+                document.getElementById('exam-mode').style.display = 'flex';
+                protectionEnabled = true;
                 lockNow();
             } else {
-                // TUNGGU 5 DETIK SEBELUM AKTIFKAN PROTEKSI SAAT PERTAMA KALI DIBUKA (NORMAL)
-                setTimeout(() => {
-                    protectionEnabled = true;
-                    enableAntiSleep();
-                    initialHeight = window.innerHeight;
-                }, 5000);
+                document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
-            // LISTENERS (Tetap dipertahankan)
+            // LISTENERS UTAMA YANG JAUH LEBIH STABIL
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
@@ -193,24 +226,19 @@
                 }, 1000);
             });
 
-            window.addEventListener('orientationchange', () => {
-                isRotating = true;
-                setTimeout(() => {
-                    initialHeight = window.innerHeight;
-                    isRotating = false;
-                }, 1000);
+            // JIKA FULLSCREEN LEPAS (KARENA TOMBOL BACK, HOME, ATAU SPLIT SCREEN), LANGSUNG KUNCI
+            document.addEventListener('fullscreenchange', () => {
+                if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
+                    lockNow();
+                }
             });
-
-            window.addEventListener('resize', () => {
-                if (isRotating) return;
-                const heightDiff = Math.abs(window.innerHeight - initialHeight);
-                if (heightDiff > 100) { 
+            document.addEventListener('webkitfullscreenchange', () => {
+                if (!document.webkitIsFullScreen && examActive && protectionEnabled && !unlockingInProgress) {
                     lockNow();
                 }
             });
         }
 
-        // FUNGSI GENERATOR
         function generateLink() {
             let url = document.getElementById('gformUrl').value;
             if (!url) return alert("Link kosong!");
@@ -226,7 +254,6 @@
             alert("Link disalin!");
         }
 
-        // EXIT (Konfirmasi Ya/Tidak tanpa password)
         function requestExit() {
             unlockingInProgress = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
@@ -234,6 +261,9 @@
         
         function confirmExit() {
             localStorage.removeItem('sukabumi2_locked');
+            if (document.fullscreenElement) {
+                document.exitFullscreen().catch(() => {});
+            }
             window.location.href = window.location.origin + window.location.pathname;
         }
         
