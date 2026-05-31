@@ -123,14 +123,16 @@
         let unlockingInProgress = false; 
         let wakeLock = null;
 
-        // PROTEKSI INPUT & KLIK
-        document.addEventListener('contextmenu', e => e.preventDefault());
-        document.addEventListener('copy', e => e.preventDefault());
-        document.addEventListener('cut', e => e.preventDefault());
-        document.addEventListener('paste', e => e.preventDefault());
+        // PERBAIKAN: PROTEKSI HANYA BERJALAN JIKA MODUL UJIAN AKTIF (examActive = true)
+        document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
+        document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
+        document.addEventListener('cut', e => { if (examActive) e.preventDefault(); });
+        document.addEventListener('paste', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('keydown', function(e) {
-            if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
-            if (e.keyCode === 123) return e.preventDefault();
+            if (examActive) {
+                if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
+                if (e.keyCode === 123) return e.preventDefault();
+            }
         });
 
         // ANTI SLEEP SCREEN
@@ -213,7 +215,6 @@
                 document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
-            // LISTENERS UTAMA YANG JAUH LEBIH STABIL
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
@@ -226,7 +227,6 @@
                 }, 1000);
             });
 
-            // JIKA FULLSCREEN LEPAS (KARENA TOMBOL BACK, HOME, ATAU SPLIT SCREEN), LANGSUNG KUNCI
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
                     lockNow();
@@ -248,10 +248,26 @@
             document.getElementById('resultArea').style.display = 'block';
         }
         
+        // PERBAIKAN: FUNGSI SALIN MENGGUNAKAN CLIPBOARD API MODERN (DILENGKAPI FALLBACK DEVICE LAMA)
         function copyLink() {
-            document.getElementById('generatedLink').select();
-            document.execCommand("copy");
-            alert("Link disalin!");
+            const targetInput = document.getElementById('generatedLink');
+            targetInput.select();
+            targetInput.setSelectionRange(0, 99999); // Optimalisasi untuk HP Android/iOS
+
+            if (navigator.clipboard && navigator.clipboard.writeText) {
+                navigator.clipboard.writeText(targetInput.value)
+                .then(() => {
+                    alert("Link berhasil disalin!");
+                })
+                .catch(() => {
+                    // Jalur alternatif jika browser memblokir Clipboard API secara sepihak
+                    document.execCommand("copy");
+                    alert("Link berhasil disalin!");
+                });
+            } else {
+                document.execCommand("copy");
+                alert("Link berhasil disalin!");
+            }
         }
 
         function requestExit() {
