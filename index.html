@@ -123,7 +123,6 @@
         let unlockingInProgress = false; 
         let wakeLock = null;
 
-        // PERBAIKAN: PROTEKSI HANYA BERJALAN JIKA MODUL UJIAN AKTIF (examActive = true)
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('cut', e => { if (examActive) e.preventDefault(); });
@@ -135,7 +134,6 @@
             }
         });
 
-        // ANTI SLEEP SCREEN
         async function enableAntiSleep() {
             if ('wakeLock' in navigator) {
                 try {
@@ -227,6 +225,20 @@
                 }, 1000);
             });
 
+            // PERBAIKAN 1: Paksa balikkan fokus ke iframe saat window menerima fokus (mencegah lock saat klik kirim/submit)
+            window.addEventListener('focus', () => {
+                if (examActive && !isLocked && !unlockingInProgress) {
+                    document.getElementById('form-frame').focus();
+                }
+            });
+
+            // PERBAIKAN 2: Paksa balikkan fokus ke iframe begitu halaman sukses bawaan gform selesai dimuat
+            document.getElementById('form-frame').addEventListener('load', () => {
+                if (examActive && !isLocked && !unlockingInProgress) {
+                    document.getElementById('form-frame').focus();
+                }
+            });
+
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
                     lockNow();
@@ -248,11 +260,10 @@
             document.getElementById('resultArea').style.display = 'block';
         }
         
-        // PERBAIKAN: FUNGSI SALIN MENGGUNAKAN CLIPBOARD API MODERN (DILENGKAPI FALLBACK DEVICE LAMA)
         function copyLink() {
             const targetInput = document.getElementById('generatedLink');
             targetInput.select();
-            targetInput.setSelectionRange(0, 99999); // Optimalisasi untuk HP Android/iOS
+            targetInput.setSelectionRange(0, 99999);
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(targetInput.value)
@@ -260,7 +271,6 @@
                     alert("Link berhasil disalin!");
                 })
                 .catch(() => {
-                    // Jalur alternatif jika browser memblokir Clipboard API secara sepihak
                     document.execCommand("copy");
                     alert("Link berhasil disalin!");
                 });
