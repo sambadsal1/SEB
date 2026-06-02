@@ -122,7 +122,10 @@
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let wakeLock = null;
-        let blurTimeout = null;
+        
+        // VARIABEL BARU UNTUK MEREKAM UKURAN LAYAR ASLI ASESMEN
+        let originalWidth = 0;
+        let originalHeight = 0;
 
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
@@ -171,6 +174,9 @@
                 triggerFullscreen();
 
                 setTimeout(() => {
+                    // Reset rekam dimensi layar setelah guru membuka kunci luar
+                    originalWidth = window.innerWidth;
+                    originalHeight = window.innerHeight;
                     unlockingInProgress = false;
                     enableAntiSleep();
                 }, 1500);
@@ -193,6 +199,9 @@
             document.getElementById('exam-mode').style.display = 'flex';
             
             setTimeout(() => {
+                // Rekam ukuran resolusi layar penuh asli saat ujian dimulai
+                originalWidth = window.innerWidth;
+                originalHeight = window.innerHeight;
                 protectionEnabled = true;
                 enableAntiSleep();
             }, 2000);
@@ -214,38 +223,23 @@
                 document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
+            // DETEKSI 1: Jika siswa berpindah tab atau meminimalkan aplikasi (Home/Selesai)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
-            // PERBAIKAN TOTAL: Memadukan hasFocus global browser dan activeElement iframe
-            window.addEventListener('blur', () => {
-                if (examActive && !isLocked && !unlockingInProgress) {
-                    clearTimeout(blurTimeout);
-                    blurTimeout = setTimeout(() => {
-                        // Aplikasi HANYA mengunci jika halaman kehilangan fokus global secara utuh (buka WA/keluar aplikasi)
-                        // DAN status elemen aktif saat ini bukan merupakan bingkai iframe ujian.
-                        if (!document.hasFocus() && document.activeElement !== document.getElementById('form-frame')) {
-                            lockNow();
-                        }
-                    }, 2000); // Toleransi transisi submit yang sangat aman dan responsif
+            // DETEKSI 2: Jika ukuran layar berubah drastis (Siswa mencoba Split-Screen atau mode Floating Pop-up)
+            window.addEventListener('resize', () => {
+                if (examActive && protectionEnabled && !unlockingInProgress) {
+                    const selisihLebar = Math.abs(window.innerWidth - originalWidth);
+                    const selisihTinggi = Math.abs(window.innerHeight - originalHeight);
+                    if (selisihLebar > 30 || selisihTinggi > 30) {
+                        lockNow();
+                    }
                 }
             });
 
-            window.addEventListener('focus', () => {
-                clearTimeout(blurTimeout);
-                if (examActive && !isLocked && !unlockingInProgress) {
-                    document.getElementById('form-frame').focus();
-                }
-            });
-
-            document.getElementById('form-frame').addEventListener('load', () => {
-                clearTimeout(blurTimeout);
-                if (examActive && !isLocked && !unlockingInProgress) {
-                    document.getElementById('form-frame').focus();
-                }
-            });
-
+            // DETEKSI 3: Jika siswa memaksa keluar dari mode Layar Penuh (Fullscreen)
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
                     lockNow();
