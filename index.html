@@ -122,11 +122,8 @@
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let wakeLock = null;
-        
-        // VARIABEL BARU UNTUK MEREKAM UKURAN LAYAR ASLI ASESMEN
-        let originalWidth = 0;
-        let originalHeight = 0;
 
+        // PERBAIKAN: PROTEKSI HANYA BERJALAN JIKA MODUL UJIAN AKTIF (examActive = true)
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('cut', e => { if (examActive) e.preventDefault(); });
@@ -138,6 +135,7 @@
             }
         });
 
+        // ANTI SLEEP SCREEN
         async function enableAntiSleep() {
             if ('wakeLock' in navigator) {
                 try {
@@ -174,9 +172,6 @@
                 triggerFullscreen();
 
                 setTimeout(() => {
-                    // Reset rekam dimensi layar setelah guru membuka kunci luar
-                    originalWidth = window.innerWidth;
-                    originalHeight = window.innerHeight;
                     unlockingInProgress = false;
                     enableAntiSleep();
                 }, 1500);
@@ -199,9 +194,6 @@
             document.getElementById('exam-mode').style.display = 'flex';
             
             setTimeout(() => {
-                // Rekam ukuran resolusi layar penuh asli saat ujian dimulai
-                originalWidth = window.innerWidth;
-                originalHeight = window.innerHeight;
                 protectionEnabled = true;
                 enableAntiSleep();
             }, 2000);
@@ -223,23 +215,18 @@
                 document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
-            // DETEKSI 1: Jika siswa berpindah tab atau meminimalkan aplikasi (Home/Selesai)
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
-            // DETEKSI 2: Jika ukuran layar berubah drastis (Siswa mencoba Split-Screen atau mode Floating Pop-up)
-            window.addEventListener('resize', () => {
-                if (examActive && protectionEnabled && !unlockingInProgress) {
-                    const selisihLebar = Math.abs(window.innerWidth - originalWidth);
-                    const selisihTinggi = Math.abs(window.innerHeight - originalHeight);
-                    if (selisihLebar > 30 || selisihTinggi > 30) {
+            window.addEventListener('blur', () => {
+                setTimeout(() => {
+                    if (document.activeElement !== document.getElementById('form-frame')) {
                         lockNow();
                     }
-                }
+                }, 1000);
             });
 
-            // DETEKSI 3: Jika siswa memaksa keluar dari mode Layar Penuh (Fullscreen)
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
                     lockNow();
@@ -261,10 +248,11 @@
             document.getElementById('resultArea').style.display = 'block';
         }
         
+        // PERBAIKAN: FUNGSI SALIN MENGGUNAKAN CLIPBOARD API MODERN (DILENGKAPI FALLBACK DEVICE LAMA)
         function copyLink() {
             const targetInput = document.getElementById('generatedLink');
             targetInput.select();
-            targetInput.setSelectionRange(0, 99999);
+            targetInput.setSelectionRange(0, 99999); // Optimalisasi untuk HP Android/iOS
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(targetInput.value)
@@ -272,6 +260,7 @@
                     alert("Link berhasil disalin!");
                 })
                 .catch(() => {
+                    // Jalur alternatif jika browser memblokir Clipboard API secara sepihak
                     document.execCommand("copy");
                     alert("Link berhasil disalin!");
                 });
