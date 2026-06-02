@@ -122,6 +122,7 @@
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let wakeLock = null;
+        let blurTimeout = null; // PENAMBAHAN VARIABEL PENGONTROL TIMEOUT
 
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
@@ -217,23 +218,28 @@
                 if (document.visibilityState !== 'visible') lockNow();
             });
 
+            // PERBAIKAN UTAMA: Berikan toleransi 5 detik saat pengiriman data gform berlangsung agar tidak mengunci otomatis
             window.addEventListener('blur', () => {
-                setTimeout(() => {
-                    if (document.activeElement !== document.getElementById('form-frame')) {
-                        lockNow();
-                    }
-                }, 1000);
+                if (examActive && !isLocked && !unlockingInProgress) {
+                    clearTimeout(blurTimeout);
+                    blurTimeout = setTimeout(() => {
+                        if (document.activeElement !== document.getElementById('form-frame')) {
+                            lockNow();
+                        }
+                    }, 5000); // Batas toleransi aman proses upload gform
+                }
             });
 
-            // PERBAIKAN 1: Paksa balikkan fokus ke iframe saat window menerima fokus (mencegah lock saat klik kirim/submit)
             window.addEventListener('focus', () => {
+                clearTimeout(blurTimeout); // Batalkan ancaman kunci jika jendela kembali fokus penuh
                 if (examActive && !isLocked && !unlockingInProgress) {
                     document.getElementById('form-frame').focus();
                 }
             });
 
-            // PERBAIKAN 2: Paksa balikkan fokus ke iframe begitu halaman sukses bawaan gform selesai dimuat
+            // PERBAIKAN UTAMA: Begitu halaman sukses gform selesai dimuat, batalkan ancaman kunci secara instan
             document.getElementById('form-frame').addEventListener('load', () => {
+                clearTimeout(blurTimeout); // Amankan halaman dari penguncian keliru akibat jeda kirim jawaban
                 if (examActive && !isLocked && !unlockingInProgress) {
                     document.getElementById('form-frame').focus();
                 }
