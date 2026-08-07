@@ -65,6 +65,7 @@
             <img src="logo.png" alt="Logo" style="max-width: 80px;" onerror="this.src='https://via.placeholder.com/80?text=Logo'">
             <h3 style="margin-top:15px; color: var(--dark-blue);">Konfirmasi Ujian</h3>
             <p style="font-size: 14px; color: #555;">Klik tombol di bawah untuk masuk ke mode layar penuh dan memulai ujian.</p>
+            <p style="font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">Peringatan: Segala upaya pindah aplikasi atau screenshot akan mengunci ujian!</p>
             <button type="button" onclick="startKioskMode()" style="background: #28a745;">MULAI UJIAN SEKARANG</button>
         </div>
     </div>
@@ -98,7 +99,7 @@
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
-            <p>Terdeteksi keluar dari aplikasi atau mencoba membagi layar (Split Screen).</p>
+            <p>Terdeteksi keluar dari aplikasi, mencoba mengambil screenshot, atau membagi layar (Split Screen).</p>
             <p style="font-size:14px; color:#555;">Minta guru pengawas untuk membuka kembali.</p>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <input type="password" id="cheatPassword" placeholder="Password Guru">
@@ -121,21 +122,31 @@
         let isLocked = false;
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
+        let isExiting = false; 
         let wakeLock = null;
 
-        // PERBAIKAN: PROTEKSI HANYA BERJALAN JIKA MODUL UJIAN AKTIF (examActive = true)
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('copy', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('cut', e => { if (examActive) e.preventDefault(); });
         document.addEventListener('paste', e => { if (examActive) e.preventDefault(); });
+        
         document.addEventListener('keydown', function(e) {
             if (examActive) {
+                // Deteksi PrintScreen
+                if (e.keyCode === 44 || e.key === 'PrintScreen') {
+                    e.preventDefault();
+                    lockNow();
+                }
+                // Deteksi Kombinasi Shortcut Screenshot (misal Windows + Shift + S atau Ctrl+Shift+S)
+                if ((e.ctrlKey && e.shiftKey && e.keyCode === 83) || (e.metaKey && e.shiftKey)) {
+                    e.preventDefault();
+                    lockNow();
+                }
                 if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
                 if (e.keyCode === 123) return e.preventDefault();
             }
         });
 
-        // ANTI SLEEP SCREEN
         async function enableAntiSleep() {
             if ('wakeLock' in navigator) {
                 try {
@@ -148,7 +159,7 @@
         }
 
         function lockNow() {
-            if (examActive && protectionEnabled && !unlockingInProgress && !isLocked) {
+            if (examActive && protectionEnabled && !unlockingInProgress && !isLocked && !isExiting) {
                 isLocked = true;
                 localStorage.setItem('sukabumi2_locked', 'true');
                 document.getElementById('cheat-overlay').style.display = 'flex';
@@ -216,7 +227,9 @@
             }
 
             document.addEventListener('visibilitychange', () => {
-                if (document.visibilityState !== 'visible') lockNow();
+                if (document.visibilityState !== 'visible') {
+                    lockNow();
+                }
             });
 
             window.addEventListener('blur', () => {
@@ -228,12 +241,12 @@
             });
 
             document.addEventListener('fullscreenchange', () => {
-                if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress) {
+                if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress && !isExiting) {
                     lockNow();
                 }
             });
             document.addEventListener('webkitfullscreenchange', () => {
-                if (!document.webkitIsFullScreen && examActive && protectionEnabled && !unlockingInProgress) {
+                if (!document.webkitIsFullScreen && examActive && protectionEnabled && !unlockingInProgress && !isExiting) {
                     lockNow();
                 }
             });
@@ -248,19 +261,15 @@
             document.getElementById('resultArea').style.display = 'block';
         }
         
-        // PERBAIKAN: FUNGSI SALIN MENGGUNAKAN CLIPBOARD API MODERN (DILENGKAPI FALLBACK DEVICE LAMA)
         function copyLink() {
             const targetInput = document.getElementById('generatedLink');
             targetInput.select();
-            targetInput.setSelectionRange(0, 99999); // Optimalisasi untuk HP Android/iOS
+            targetInput.setSelectionRange(0, 99999);
 
             if (navigator.clipboard && navigator.clipboard.writeText) {
                 navigator.clipboard.writeText(targetInput.value)
-                .then(() => {
-                    alert("Link berhasil disalin!");
-                })
+                .then(() => { alert("Link berhasil disalin!"); })
                 .catch(() => {
-                    // Jalur alternatif jika browser memblokir Clipboard API secara sepihak
                     document.execCommand("copy");
                     alert("Link berhasil disalin!");
                 });
@@ -271,7 +280,7 @@
         }
 
         function requestExit() {
-            unlockingInProgress = true; 
+            isExiting = true; 
             document.getElementById('exit-overlay').style.display = 'flex';
         }
         
@@ -285,7 +294,9 @@
         
         document.getElementById('btnCancelExit').onclick = function() {
             document.getElementById('exit-overlay').style.display = 'none';
-            setTimeout(() => { unlockingInProgress = false; }, 1000);
+            setTimeout(() => { 
+                isExiting = false; 
+            }, 500);
         };
     </script>
 </body>
