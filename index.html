@@ -65,7 +65,7 @@
             <img src="logo.png" alt="Logo" style="max-width: 80px;" onerror="this.src='https://via.placeholder.com/80?text=Logo'">
             <h3 style="margin-top:15px; color: var(--dark-blue);">Konfirmasi Ujian</h3>
             <p style="font-size: 14px; color: #555;">Klik tombol di bawah untuk masuk ke mode layar penuh dan memulai ujian.</p>
-            <p style="font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">Peringatan: Segala upaya pindah aplikasi atau screenshot akan mengunci ujian!</p>
+            <p style="font-size: 12px; color: var(--danger); font-weight: bold; margin-top: 10px;">Peringatan: Jangan berpindah aplikasi atau keluar dari layar penuh!</p>
             <button type="button" onclick="startKioskMode()" style="background: #28a745;">MULAI UJIAN SEKARANG</button>
         </div>
     </div>
@@ -99,7 +99,7 @@
     <div id="cheat-overlay" class="overlay">
         <div class="overlay-box">
             <h2 style="color:var(--danger); margin-top:0;">AKSES TERKUNCI!</h2>
-            <p>Terdeteksi keluar dari aplikasi, mencoba mengambil screenshot, atau membagi layar (Split Screen).</p>
+            <p>Terdeteksi keluar dari aplikasi atau keluar dari mode layar penuh.</p>
             <p style="font-size:14px; color:#555;">Minta guru pengawas untuk membuka kembali.</p>
             <hr style="border:0; border-top:1px solid #eee; margin:20px 0;">
             <input type="password" id="cheatPassword" placeholder="Password Guru">
@@ -132,14 +132,6 @@
         
         document.addEventListener('keydown', function(e) {
             if (examActive) {
-                if (e.keyCode === 44 || e.key === 'PrintScreen') {
-                    e.preventDefault();
-                    lockNow();
-                }
-                if ((e.ctrlKey && e.shiftKey && e.keyCode === 83) || (e.metaKey && e.shiftKey)) {
-                    e.preventDefault();
-                    lockNow();
-                }
                 if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
                 if (e.keyCode === 123) return e.preventDefault();
             }
@@ -224,25 +216,14 @@
                 document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
+            // Hanya mendeteksi perpindahan tab/minimize aplikasi secara nyata
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') {
                     lockNow();
                 }
             });
 
-            // PERBAIKAN: Menambahkan toleransi ketika fokus berpindah ke dalam iframe (saat klik kirim / navigasi form)
-            window.addEventListener('blur', () => {
-                setTimeout(() => {
-                    const activeEl = document.activeElement;
-                    const iframe = document.getElementById('form-frame');
-                    // Jika fokus saat ini berada di dalam iframe (artinya siswa masih berinteraksi dengan Google Form), jangan kunci!
-                    if (activeEl === iframe) {
-                        return;
-                    }
-                    lockNow();
-                }, 1200);
-            });
-
+            // Deteksi keluar dari mode layar penuh secara ilegal
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress && !isExiting) {
                     lockNow();
