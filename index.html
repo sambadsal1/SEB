@@ -132,12 +132,10 @@
         
         document.addEventListener('keydown', function(e) {
             if (examActive) {
-                // Deteksi PrintScreen
                 if (e.keyCode === 44 || e.key === 'PrintScreen') {
                     e.preventDefault();
                     lockNow();
                 }
-                // Deteksi Kombinasi Shortcut Screenshot (misal Windows + Shift + S atau Ctrl+Shift+S)
                 if ((e.ctrlKey && e.shiftKey && e.keyCode === 83) || (e.metaKey && e.shiftKey)) {
                     e.preventDefault();
                     lockNow();
@@ -232,12 +230,17 @@
                 }
             });
 
+            // PERBAIKAN: Menambahkan toleransi ketika fokus berpindah ke dalam iframe (saat klik kirim / navigasi form)
             window.addEventListener('blur', () => {
                 setTimeout(() => {
-                    if (document.activeElement !== document.getElementById('form-frame')) {
-                        lockNow();
+                    const activeEl = document.activeElement;
+                    const iframe = document.getElementById('form-frame');
+                    // Jika fokus saat ini berada di dalam iframe (artinya siswa masih berinteraksi dengan Google Form), jangan kunci!
+                    if (activeEl === iframe) {
+                        return;
                     }
-                }, 1000);
+                    lockNow();
+                }, 1200);
             });
 
             document.addEventListener('fullscreenchange', () => {
