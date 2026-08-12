@@ -93,7 +93,6 @@
             </div>
             <button type="button" onclick="requestExit()" style="width:auto; padding:5px 12px; background:var(--danger); font-size:12px;">Selesai</button>
         </div>
-        <!-- Tambahkan event mousedown/touchstart pada pembungkus iframe untuk merekam aktivitas siswa -->
         <iframe id="form-frame" src="" allow="fullscreen"></iframe>
     </div>
 
@@ -124,7 +123,7 @@
         let protectionEnabled = false; 
         let unlockingInProgress = false; 
         let isExiting = false; 
-        let lastInteractionTime = Date.now(); // Variabel untuk merekam waktu interaksi terakhir
+        let lastInteractionTime = Date.now();
         let wakeLock = null;
 
         document.addEventListener('contextmenu', e => { if (examActive) e.preventDefault(); });
@@ -134,13 +133,12 @@
         
         document.addEventListener('keydown', function(e) {
             if (examActive) {
-                lastInteractionTime = Date.now(); // Perbarui waktu interaksi saat ada aktivitas keyboard
+                lastInteractionTime = Date.now();
                 if (e.ctrlKey && [67, 86, 85, 83, 65].includes(e.keyCode)) return e.preventDefault();
                 if (e.keyCode === 123) return e.preventDefault();
             }
         });
 
-        // Catat aktivitas klik di seluruh dokumen agar sistem tahu siswa sedang aktif mengerjakan
         window.addEventListener('pointerdown', () => {
             if (examActive) lastInteractionTime = Date.now();
         });
@@ -157,13 +155,13 @@
         }
 
         function lockNow() {
-            // Jika baru saja ada interaksi dalam 2 detik terakhir (seperti klik tombol kirim/dialog form), abaikan penguncian sementara
             if (Date.now() - lastInteractionTime < 2000) {
                 return;
             }
 
             if (examActive && protectionEnabled && !unlockingInProgress && !isLocked && !isExiting) {
                 isLocked = true;
+                // Simpan status kunci secara permanen di browser
                 localStorage.setItem('sukabumi2_locked', 'true');
                 document.getElementById('cheat-overlay').style.display = 'flex';
                 document.getElementById('form-frame').style.visibility = 'hidden';
@@ -178,6 +176,7 @@
             if (input === PASS) {
                 unlockingInProgress = true; 
                 isLocked = false;
+                // Hapus status kunci permanen saat password guru benar
                 localStorage.removeItem('sukabumi2_locked');
                 document.getElementById('cheat-overlay').style.display = 'none';
                 document.getElementById('form-frame').style.visibility = 'visible';
@@ -221,22 +220,23 @@
             examActive = true;
             document.getElementById('form-frame').src = decodeURIComponent(examUrl);
 
+            // CEK UTAMA: Jika memuat ulang halaman/link baru tapi memori browser mencatat status "locked", langsung kunci total!
             if (localStorage.getItem('sukabumi2_locked') === 'true') {
                 document.getElementById('exam-mode').style.display = 'flex';
+                document.getElementById('cheat-overlay').style.display = 'flex';
+                document.getElementById('form-frame').style.visibility = 'hidden';
+                isLocked = true;
                 protectionEnabled = true;
-                lockNow();
             } else {
                 document.getElementById('kiosk-gate').style.display = 'flex';
             }
 
-            // Pemantauan perubahan status visibilitas dengan jeda pengaman interaksi
             document.addEventListener('visibilitychange', () => {
                 if (document.visibilityState !== 'visible') {
                     lockNow();
                 }
             });
 
-            // Pemantauan keluar layar penuh dengan pengecualian waktu interaksi pengiriman form
             document.addEventListener('fullscreenchange', () => {
                 if (!document.fullscreenElement && examActive && protectionEnabled && !unlockingInProgress && !isExiting) {
                     lockNow();
